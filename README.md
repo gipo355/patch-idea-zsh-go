@@ -1,4 +1,4 @@
-# patch-idea-zsh-go
+# patch-jetbrains-ide
 
 Small CLI utility to patch JetBrains desktop files to use a shell to launch the IDE and inherit the environment variables (paths to runtimes, etc.)
 
@@ -18,7 +18,7 @@ The shell executable is chosen by the user, and the path to the shell executable
 ## example
 
 ```bash
-patch-idea-zsh-go -acyr
+patch-jetbrains-ide -acyr
 ```
 
 This will patch all the jetbrains desktop files to use the current shell from $SHELL.
@@ -33,18 +33,12 @@ This will patch all the jetbrains desktop files to use the current shell from $S
 - Patch the files you choose
 - Show the patching results
 
-## Usage
-
-```bash
-patch-idea-zsh-go
-```
-
 ## Installation
 
 ### Install from source
 
 ```bash
-go install github.com/gipo355/patch-idea-zsh-go@latest
+go install github.com/gipo355/patch-jetbrains-ide@latest
 ```
 
 ## License

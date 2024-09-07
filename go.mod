@@ -1,4 +1,4 @@
-module github.com/gipo355/patch-idea-zsh-go
+module github.com/gipo355/patch-jetbrains-ide
 
 go 1.23.0
 

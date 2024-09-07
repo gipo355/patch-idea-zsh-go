@@ -7,7 +7,7 @@ import (
 
 	"github.com/ogier/pflag"
 
-	"github.com/gipo355/patch-idea-zsh-go/internal"
+	"github.com/gipo355/patch-jetbrains-ide/internal"
 )
 
 func main() {
