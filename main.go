@@ -175,7 +175,14 @@ func main() {
 	}
 
 	// List all found files
-	fmt.Println("\x1b[32mFound the following JetBrains IDEA desktop files:\x1b[0m")
+	fmt.Fprintln(
+		// "\x1b[32mFound the following %d JetBrains IDEA desktop files:\x1b[0m",
+		os.Stdout,
+		fmt.Sprintf(
+			"\x1b[32mFound the following %d JetBrains IDEA desktop files:\x1b[0m",
+			len(matchingFiles),
+		),
+	)
 	for i, file := range matchingFiles {
 		fmt.Printf("%d: %s\n", i+1, file)
 	}
@@ -208,6 +215,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("\x1b[32mPatching %d files.\x1b[0m\n", len(filesToPatch))
 	// Loop through each file and patch it
 	for _, filePath := range filesToPatch {
 		content, err := os.ReadFile(filePath)
@@ -228,6 +236,8 @@ func main() {
 		if alreadyPatched {
 			continue
 		}
+
+		fmt.Printf("\x1b[32mv\x1b[0m Patching file: %s\n", filePath)
 
 		currentDate := time.Now().Format("2006-01-02 15:04:05")
 
@@ -262,11 +272,11 @@ func main() {
 
 		println(finalContent)
 
-		// err = os.WriteFile(filePath, []byte(finalContent), 0644)
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
-		// 	os.Exit(1)
-		// }
+		err = os.WriteFile(filePath, []byte(finalContent), 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
+			os.Exit(1)
+		}
 
 		fmt.Printf("\x1b[32mv\x1b[0m Patched file: %s\n", filePath)
 	}
