@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -57,6 +58,24 @@ func allIDEs() []JetBrainsIDE {
 }
 
 func main() {
+	// Define flags
+	helpFlag := flag.Bool("h", false, "Show help")
+	allFlag := flag.Bool("a", false, "Select all IDEs")
+	currentShellFlag := flag.Bool("c", false, "Use current shell from $SHELL")
+
+	// Parse flags
+	flag.Parse()
+
+	// Show help and exit if -h is provided
+	if *helpFlag {
+		fmt.Println("Usage: main [-h] [-a] [-c]")
+		fmt.Println("Options:")
+		fmt.Println("  -h  Show help")
+		fmt.Println("  -a  Select all IDEs")
+		fmt.Println("  -c  Use current shell from $SHELL")
+		os.Exit(0)
+	}
+
 	// Get the .local/share/ directory path
 	dirPath := filepath.Join(os.Getenv("HOME"), ".local", "share", "applications")
 
@@ -67,21 +86,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Ask the user to choose the shell
-	fmt.Println("Choose the shell to use (sh/bash/zsh, default is zsh):")
-	fmt.Print("> ")
-	shellInput := readLine()
-	if shellInput == "" {
-		shellInput = "zsh"
-	}
-
-	shell := shellInput
-	if shell != "bash" && shell != "sh" && shell != "zsh" {
-		fmt.Fprintln(
-			os.Stderr,
-			"\x1b[31mInvalid shell choice. Please choose either 'bash', 'sh' or 'zsh'.\x1b[0m",
-		)
-		os.Exit(1)
+	// Determine the shell to use
+	var shell string
+	if *currentShellFlag {
+		shell = os.Getenv("SHELL")
+		if shell == "" {
+			fmt.Fprintln(os.Stderr, "\x1b[31mSHELL environment variable not set.\x1b[0m")
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Choose the shell to use (sh/bash/zsh, default is zsh):")
+		fmt.Print("> ")
+		shellInput := readLine()
+		if shellInput == "" {
+			shellInput = "zsh"
+		}
+		shell = shellInput
+		if shell != "bash" && shell != "sh" && shell != "zsh" {
+			fmt.Fprintln(os.Stderr, "\x1b[31mInvalid shell choice. Please choose either 'bash', 'sh' or 'zsh'.\x1b[0m")
+			os.Exit(1)
+		}
 	}
 
 	// Get the path of the chosen shell
@@ -100,23 +124,27 @@ func main() {
 		homeDir,
 	)
 
-	// Ask the user to choose the IDEs
-	fmt.Println("Choose the JetBrains IDEs to patch (comma-separated numbers, default is all):")
-	allIDEs := allIDEs()
-	for i, ide := range allIDEs {
-		fmt.Printf("%d: %s\n", i+1, ide)
-	}
-	fmt.Print("> ")
-	ideInput := readLine()
-
+	// Determine the IDEs to patch
 	var selectedIDEs []JetBrainsIDE
-	if ideInput == "" {
-		selectedIDEs = allIDEs
+	if *allFlag {
+		selectedIDEs = allIDEs()
 	} else {
-		for _, s := range strings.Split(ideInput, ",") {
-			i, err := strconv.Atoi(strings.TrimSpace(s))
-			if err == nil && i > 0 && i <= len(allIDEs) {
-				selectedIDEs = append(selectedIDEs, allIDEs[i-1])
+		fmt.Println("Choose the JetBrains IDEs to patch (comma-separated numbers, default is all):")
+		allIDEs := allIDEs()
+		for i, ide := range allIDEs {
+			fmt.Printf("%d: %s\n", i+1, ide)
+		}
+		fmt.Print("> ")
+		ideInput := readLine()
+
+		if ideInput == "" {
+			selectedIDEs = allIDEs
+		} else {
+			for _, s := range strings.Split(ideInput, ",") {
+				i, err := strconv.Atoi(strings.TrimSpace(s))
+				if err == nil && i > 0 && i <= len(allIDEs) {
+					selectedIDEs = append(selectedIDEs, allIDEs[i-1])
+				}
 			}
 		}
 	}
@@ -225,11 +253,13 @@ func main() {
 			finalOldContent,
 		)
 
-		err = os.WriteFile(filePath, []byte(finalContent), 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
-			os.Exit(1)
-		}
+		println(finalContent)
+
+		// err = os.WriteFile(filePath, []byte(finalContent), 0644)
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
+		// 	os.Exit(1)
+		// }
 
 		fmt.Printf("\x1b[32mv\x1b[0m Patched file: %s\n", filePath)
 	}
