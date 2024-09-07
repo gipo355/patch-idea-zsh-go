@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	flag "github.com/ogier/pflag"
 )
 
 type JetBrainsIDE int
@@ -59,20 +60,22 @@ func allIDEs() []JetBrainsIDE {
 
 func main() {
 	// Define flags
-	helpFlag := flag.Bool("h", false, "Show help")
-	allFlag := flag.Bool("a", false, "Select all IDEs")
-	currentShellFlag := flag.Bool("c", false, "Use current shell from $SHELL")
+	helpFlag := flag.BoolP("help", "h", false, "Show help")
+	allIdesFlag := flag.BoolP("all-ides", "a", false, "Select all IDEs")
+	allFilesFlag := flag.BoolP("all-files", "y", false, "Select all IDEs")
+	currentShellFlag := flag.BoolP("current-shell", "c", false, "Use current shell from $SHELL")
 
 	// Parse flags
 	flag.Parse()
 
 	// Show help and exit if -h is provided
 	if *helpFlag {
-		fmt.Println("Usage: main [-h] [-a] [-c]")
-		fmt.Println("Options:")
-		fmt.Println("  -h  Show help")
-		fmt.Println("  -a  Select all IDEs")
-		fmt.Println("  -c  Use current shell from $SHELL")
+		// fmt.Println("Usage: main [-h] [-a] [-c]")
+		// fmt.Println("Options:")
+		// fmt.Println("  -h  Show help")
+		// fmt.Println("  -a  Select all IDEs")
+		// fmt.Println("  -c  Use current shell from $SHELL")
+		flag.Usage()
 		os.Exit(0)
 	}
 
@@ -126,7 +129,7 @@ func main() {
 
 	// Determine the IDEs to patch
 	var selectedIDEs []JetBrainsIDE
-	if *allFlag {
+	if *allIdesFlag {
 		selectedIDEs = allIDEs()
 	} else {
 		fmt.Println("Choose the JetBrains IDEs to patch (comma-separated numbers, default is all):")
@@ -178,22 +181,26 @@ func main() {
 	}
 
 	// Ask for confirmation
-	fmt.Println(
-		"Enter the numbers of the files you want to patch, separated by commas (default is all):",
-	)
-	fmt.Print("> ")
-	input := readLine()
-
 	var filesToPatch []string
-	if input == "" {
-		filesToPatch = matchingFiles
-	} else {
-		for _, s := range strings.Split(input, ",") {
-			i, err := strconv.Atoi(strings.TrimSpace(s))
-			if err == nil && i > 0 && i <= len(matchingFiles) {
-				filesToPatch = append(filesToPatch, matchingFiles[i-1])
+	if !*allFilesFlag {
+		fmt.Println(
+			"Enter the numbers of the files you want to patch, separated by commas (default is all):",
+		)
+		fmt.Print("> ")
+		input := readLine()
+
+		if input == "" {
+			filesToPatch = matchingFiles
+		} else {
+			for _, s := range strings.Split(input, ",") {
+				i, err := strconv.Atoi(strings.TrimSpace(s))
+				if err == nil && i > 0 && i <= len(matchingFiles) {
+					filesToPatch = append(filesToPatch, matchingFiles[i-1])
+				}
 			}
 		}
+	} else {
+		filesToPatch = matchingFiles
 	}
 
 	if len(filesToPatch) == 0 {
