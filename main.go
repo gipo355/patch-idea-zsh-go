@@ -285,8 +285,6 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("\x1b[32mv\x1b[0m Patching file: %s\n", filePath)
-
 		currentDate := time.Now().Format("2006-01-02 15:04:05")
 
 		finalOldContent := fmt.Sprintf(
