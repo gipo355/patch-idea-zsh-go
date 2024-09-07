@@ -105,7 +105,6 @@ func PatchFiles(filesToPatch []string, shellPath string, dryRunFlag, repatchFlag
 
 				newExecLine := fmt.Sprintf(`Exec=%s -i -c "%s" %%u`, shellPath, oldExecContent)
 				modifiedContent = append(modifiedContent, newExecLine)
-				continue
 			}
 
 			if strings.HasPrefix(line, "#") {
