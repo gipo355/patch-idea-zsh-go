@@ -237,19 +237,23 @@ func main() {
 		alreadyPatched := false
 
 		var oldExecContent string
+		var modifiedOldContent []string
+		var modifiedContent []string
 
-		for i, line := range lines {
-			// prevent repatching
+		for _, line := range lines {
+
+			// prevent repatching if outcome is the same
 			if !*repatchFlag && strings.HasPrefix(line, fmt.Sprintf("Exec=%s", shellPath)) {
 				fmt.Printf("\x1b[33mx\x1b[0m File %s is already patched. Skipping.\n", filePath)
 				alreadyPatched = true
 				break
 			}
 
-			// swap Exec line
+			// swap Exec line and append to modifiedContent if the line starts with Exec=
 			if strings.HasPrefix(line, "Exec=") {
 				start := strings.Index(line, "\"") + 1
 				end := strings.LastIndex(line, "\"")
+
 				if start > 0 && end > start {
 					oldExecContent = line[start:end]
 				}
@@ -260,8 +264,19 @@ func main() {
 					oldExecContent,
 				)
 
-				// swap
-				lines[i] = newExecLine
+				modifiedContent = append(modifiedContent, newExecLine)
+
+				continue
+			}
+
+			// if line is old content starting with # add to modifiedOldContent, else add to modifiedContent and append to old content with #
+			// we will merge those together. the modifiedContent will be the new content wit hthe exec line swapped
+			// the old content will keep track of the original content with the old exec line to allow to restore
+			if strings.HasPrefix(line, "#") {
+				modifiedOldContent = append(modifiedOldContent, line)
+			} else {
+				modifiedOldContent = append(modifiedOldContent, "# "+line)
+				modifiedContent = append(modifiedContent, line)
 			}
 		}
 
@@ -274,27 +289,13 @@ func main() {
 
 		currentDate := time.Now().Format("2006-01-02 15:04:05")
 
-		// keep track of the current content
-		var modifiedContent []string
-		modifiedContent = append(modifiedContent, lines...)
-
-		// keep track of the old content (append lines starting with # or add # to the beginning)
-		var modifiedOldContent []string
-		for _, line := range lines {
-			if strings.HasPrefix(line, "#") {
-				modifiedOldContent = append(modifiedOldContent, line)
-			} else {
-				modifiedOldContent = append(modifiedOldContent, "# "+line)
-			}
-		}
-
 		finalOldContent := fmt.Sprintf(
-			"\n# patched on %s\n%s",
+			"# patched on %s\n%s",
 			currentDate,
 			strings.Join(modifiedOldContent, "\n"),
 		)
 		finalContent := fmt.Sprintf(
-			"%s\n\n%s",
+			"%s\n%s",
 			strings.Join(modifiedContent, "\n"),
 			finalOldContent,
 		)
@@ -311,8 +312,11 @@ func main() {
 
 		if *dryRunFlag {
 			println(finalContent)
-			println("no action taken -- dry run mode on")
 		}
+	}
+
+	if *dryRunFlag {
+		println("\nno action taken -- dry run mode on")
 	}
 }
 
