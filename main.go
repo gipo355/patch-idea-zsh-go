@@ -95,8 +95,9 @@ func main() {
 	var shell string
 	if *currentShellFlag {
 		shell = os.Getenv("SHELL")
-		if shell == "" {
-			fmt.Fprintln(os.Stderr, "\x1b[31mSHELL environment variable not set.\x1b[0m")
+		// prevent empty shell var or different from sh/bash/zsh
+		if shell == "" || shell != "bash" && shell != "sh" && shell != "zsh" {
+			fmt.Fprintln(os.Stderr, "\x1b[31mSHELL environment variable not set or invalid.\x1b[0m")
 			os.Exit(1)
 		}
 	} else {
