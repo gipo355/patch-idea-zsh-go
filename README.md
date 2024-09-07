@@ -25,7 +25,7 @@ This will patch all the jetbrains desktop files to use the current shell from $S
 
 ## Features
 
-- Find all the desktop files in the local data directory
+- Find all the desktop files in the local data directory (usually ~/.local/share/applications)
 - Patch the desktop files to use the shell you choose (sh/bash/zsh) and the path to the shell executable
 - Choose the shell you want to use (sh/bash/zsh)
 - Choose the JetBrains IDEs you want to patch (comma-separated numbers, default is all)
@@ -36,7 +36,7 @@ This will patch all the jetbrains desktop files to use the current shell from $S
 ## Usage
 
 ```bash
-patch-idea-zsh
+patch-idea-zsh-go
 ```
 
 ## Installation
