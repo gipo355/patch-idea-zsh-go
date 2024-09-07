@@ -61,8 +61,10 @@ func allIDEs() []JetBrainsIDE {
 func main() {
 	// Define flags
 	helpFlag := flag.BoolP("help", "h", false, "Show help")
+	dryRunFlag := flag.BoolP("dry-run", "d", false, "Dry run")
 	allIdesFlag := flag.BoolP("all-ides", "a", false, "Select all IDEs")
 	allFilesFlag := flag.BoolP("all-files", "y", false, "Select all IDEs")
+	repatchFlag := flag.BoolP("repatch", "r", false, "Select all IDEs")
 	currentShellFlag := flag.BoolP("current-shell", "c", false, "Use current shell from $SHELL")
 
 	// Parse flags
@@ -119,13 +121,6 @@ func main() {
 	}
 
 	fmt.Printf("\x1b[32mUsing shell: %s\x1b[0m\n", shellPath)
-
-	// Create the new Exec line with the home directory path to use
-	newExecLine := fmt.Sprintf(
-		`Exec=%s -i -c "%s/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/bin/idea" %%u`,
-		shellPath,
-		homeDir,
-	)
 
 	// Determine the IDEs to patch
 	var selectedIDEs []JetBrainsIDE
@@ -216,8 +211,22 @@ func main() {
 	}
 
 	fmt.Printf("\x1b[32mPatching %d files.\x1b[0m\n", len(filesToPatch))
+
 	// Loop through each file and patch it
 	for _, filePath := range filesToPatch {
+		// example file:
+		// [Desktop Entry]
+		// Name=IntelliJ IDEA Ultimate 2024.2.1
+		// Exec=/usr/bin/zsh -i -c "/home/wolf/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/bin/idea" %u
+		// Version=1.0
+		// Type=Application
+		// Categories=Development;IDE;
+		// Terminal=false
+		// Icon=/home/wolf/.local/share/JetBrains/Toolbox/apps/intellij-idea-ultimate/bin/idea.svg
+		// Comment=The Leading Java and Kotlin IDE
+		// StartupWMClass=jetbrains-idea
+		// StartupNotify=true
+
 		content, err := os.ReadFile(filePath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "\x1b[31mFailed to read the file: %s\x1b[0m\n", filePath)
@@ -226,13 +235,37 @@ func main() {
 
 		lines := strings.Split(string(content), "\n")
 		alreadyPatched := false
-		for _, line := range lines {
-			if strings.HasPrefix(line, fmt.Sprintf("Exec=%s", shellPath)) {
+
+		var oldExecContent string
+
+		for i, line := range lines {
+			// prevent repatching
+			if !*repatchFlag && strings.HasPrefix(line, fmt.Sprintf("Exec=%s", shellPath)) {
 				fmt.Printf("\x1b[33mx\x1b[0m File %s is already patched. Skipping.\n", filePath)
 				alreadyPatched = true
 				break
 			}
+
+			// swap Exec line
+			if strings.HasPrefix(line, "Exec=") {
+				start := strings.Index(line, "\"") + 1
+				end := strings.LastIndex(line, "\"")
+				if start > 0 && end > start {
+					oldExecContent = line[start:end]
+				}
+
+				newExecLine := fmt.Sprintf(
+					`Exec=%s -i -c "%s" %%u`,
+					shellPath,
+					oldExecContent,
+				)
+
+				// swap
+				lines[i] = newExecLine
+			}
 		}
+
+		// skip if already patched
 		if alreadyPatched {
 			continue
 		}
@@ -241,15 +274,11 @@ func main() {
 
 		currentDate := time.Now().Format("2006-01-02 15:04:05")
 
+		// keep track of the current content
 		var modifiedContent []string
-		for _, line := range lines {
-			if strings.HasPrefix(line, "Exec=") {
-				modifiedContent = append(modifiedContent, newExecLine)
-			} else {
-				modifiedContent = append(modifiedContent, line)
-			}
-		}
+		modifiedContent = append(modifiedContent, lines...)
 
+		// keep track of the old content (append lines starting with # or add # to the beginning)
 		var modifiedOldContent []string
 		for _, line := range lines {
 			if strings.HasPrefix(line, "#") {
@@ -270,15 +299,20 @@ func main() {
 			finalOldContent,
 		)
 
-		println(finalContent)
-
-		err = os.WriteFile(filePath, []byte(finalContent), 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
-			os.Exit(1)
+		if !*dryRunFlag {
+			err = os.WriteFile(filePath, []byte(finalContent), 0644)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
+				os.Exit(1)
+			}
 		}
 
 		fmt.Printf("\x1b[32mv\x1b[0m Patched file: %s\n", filePath)
+
+		if *dryRunFlag {
+			println(finalContent)
+			println("no action taken -- dry run mode on")
+		}
 	}
 }
 
