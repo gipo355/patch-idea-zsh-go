@@ -34,6 +34,12 @@ var IdeNames = []string{
 	"studio", // JetBrains android studio
 }
 
+func AllIDEs() []JetBrainsIDE {
+	return []JetBrainsIDE{
+		IntelliJ, PyCharm, WebStorm, PhpStorm, CLion, Rider, DataGrip, RubyMine, AppCode, Studio,
+	}
+}
+
 func (ide JetBrainsIDE) String() string {
 	return IdeNames[ide]
 }
@@ -45,12 +51,6 @@ func FromString(input string) (JetBrainsIDE, bool) {
 		}
 	}
 	return 0, false
-}
-
-func AllIDEs() []JetBrainsIDE {
-	return []JetBrainsIDE{
-		IntelliJ, PyCharm, WebStorm, PhpStorm, CLion, Rider, DataGrip, RubyMine, AppCode,
-	}
 }
 
 func GetSelectedIDEs(allIdesFlag bool) []JetBrainsIDE {
