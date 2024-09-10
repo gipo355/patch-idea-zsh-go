@@ -1,8 +1,12 @@
 # patch-jetbrains-ide
 
+⚠ requires using jetbrains-toolbox
+
 Small CLI utility to patch JetBrains desktop files to use a shell to launch the IDE and inherit the environment variables (paths to runtimes, etc.)
 
-It will find all the desktop files in the local data directory and patch them to use the shell you choose (sh/bash/zsh) and the path to the shell executable.
+- It will find all the desktop files in the local data directory (usually ~/.local/share/applications)
+- list all the JetBrains IDEs installed (e.g. `jetbrains-{name}-{hash}.desktop`)
+- patch them to use the shell you choose (sh/bash/zsh) and the path to the shell executable. (replaces the `Exec` line by appending the shell executable to the path)
 
 The shell executable is chosen by the user, and the path to the shell executable is determined by the operating system.
 
@@ -16,6 +20,12 @@ The shell executable is chosen by the user, and the path to the shell executable
 - `-c` or `--current-shell`: Use current shell from $SHELL
 
 ## example
+
+```bash
+patch-jetbrains-ide
+```
+
+patch everything without prompting:
 
 ```bash
 patch-jetbrains-ide -acyr

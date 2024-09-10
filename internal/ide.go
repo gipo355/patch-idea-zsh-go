@@ -18,6 +18,7 @@ const (
 	DataGrip
 	RubyMine
 	AppCode
+	Studio
 )
 
 var IdeNames = []string{
@@ -30,6 +31,7 @@ var IdeNames = []string{
 	"datagrip",
 	"rubymine",
 	"appcode",
+	"studio", // JetBrains android studio
 }
 
 func (ide JetBrainsIDE) String() string {
