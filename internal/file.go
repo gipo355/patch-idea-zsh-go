@@ -66,6 +66,56 @@ func GetFilesToPatch(matchingFiles []string, allFilesFlag bool) []string {
 	return filesToPatch
 }
 
+// BuildPatchedContent rewrites a JetBrains .desktop file so its Exec line
+// launches the IDE through an interactive shell, making the IDE inherit the
+// environment (PATH, version-manager shims, etc.) of that shell. The original
+// content is preserved, commented out, below a "# patched on <patchedAt>" marker.
+//
+// It returns the new file content and whether the file was already patched with
+// shellPath. When alreadyPatched is true (and repatch is false) the returned
+// content is empty and the caller should leave the file untouched.
+func BuildPatchedContent(content, shellPath, patchedAt string, repatch bool) (string, bool) {
+	lines := strings.Split(content, "\n")
+
+	var oldExecContent string
+	var modifiedOldContent []string
+	var modifiedContent []string
+
+	for _, line := range lines {
+		if !repatch && strings.HasPrefix(line, "Exec="+shellPath) {
+			return "", true
+		}
+
+		if strings.HasPrefix(line, "Exec=") {
+			start := strings.Index(line, "\"") + 1
+			end := strings.LastIndex(line, "\"")
+
+			if start > 0 && end > start {
+				oldExecContent = line[start:end]
+			}
+
+			// The literal double quotes around the IDE path are required by the
+			// .desktop Exec format; GLib-based launchers (gio/gtk-launch) refuse
+			// to load an Exec line that contains nested/escaped quotes.
+			//nolint:gocritic // literal double quotes are required by the .desktop Exec format, not %q escaping
+			newExecLine := fmt.Sprintf(`Exec=%s -i -c "%s" %%u`, shellPath, oldExecContent)
+			modifiedContent = append(modifiedContent, newExecLine)
+			modifiedOldContent = append(modifiedOldContent, "# "+line)
+			continue
+		}
+
+		if strings.HasPrefix(line, "#") {
+			modifiedOldContent = append(modifiedOldContent, line)
+		} else {
+			modifiedOldContent = append(modifiedOldContent, "# "+line)
+			modifiedContent = append(modifiedContent, line)
+		}
+	}
+
+	finalOldContent := fmt.Sprintf("# patched on %s\n%s", patchedAt, strings.Join(modifiedOldContent, "\n"))
+	return fmt.Sprintf("%s\n%s", strings.Join(modifiedContent, "\n"), finalOldContent), false
+}
+
 func PatchFiles(filesToPatch []string, shellPath string, dryRunFlag, repatchFlag bool) {
 	if len(filesToPatch) == 0 {
 		fmt.Fprintln(os.Stderr, "\x1b[31mNo files selected for patching.\x1b[0m")
@@ -81,57 +131,16 @@ func PatchFiles(filesToPatch []string, shellPath string, dryRunFlag, repatchFlag
 			os.Exit(1)
 		}
 
-		lines := strings.Split(string(content), "\n")
-		alreadyPatched := false
-
-		var oldExecContent string
-		var modifiedOldContent []string
-		var modifiedContent []string
-
-		for _, line := range lines {
-			if !repatchFlag && strings.HasPrefix(line, fmt.Sprintf("Exec=%s", shellPath)) {
-				fmt.Printf("\x1b[33mx\x1b[0m File %s is already patched. Skipping.\n", filePath)
-				alreadyPatched = true
-				break
-			}
-
-			if strings.HasPrefix(line, "Exec=") {
-				start := strings.Index(line, "\"") + 1
-				end := strings.LastIndex(line, "\"")
-
-				if start > 0 && end > start {
-					oldExecContent = line[start:end]
-				}
-
-				newExecLine := fmt.Sprintf(`Exec=%s -i -c "%s" %%u`, shellPath, oldExecContent)
-				modifiedContent = append(modifiedContent, newExecLine)
-				modifiedOldContent = append(modifiedOldContent, "# "+line)
-				continue
-			}
-
-			if strings.HasPrefix(line, "#") {
-				modifiedOldContent = append(modifiedOldContent, line)
-			} else {
-				modifiedOldContent = append(modifiedOldContent, "# "+line)
-				modifiedContent = append(modifiedContent, line)
-			}
-		}
-
+		patchedAt := time.Now().Format("2006-01-02 15:04:05")
+		finalContent, alreadyPatched := BuildPatchedContent(string(content), shellPath, patchedAt, repatchFlag)
 		if alreadyPatched {
+			fmt.Printf("\x1b[33mx\x1b[0m File %s is already patched. Skipping.\n", filePath)
 			continue
 		}
 
-		currentDate := time.Now().Format("2006-01-02 15:04:05")
-		finalOldContent := fmt.Sprintf(
-			"# patched on %s\n%s",
-			currentDate,
-			strings.Join(modifiedOldContent, "\n"),
-		)
-		finalContent := fmt.Sprintf("%s\n%s", strings.Join(modifiedContent, "\n"), finalOldContent)
-
 		if !dryRunFlag {
-			err = os.WriteFile(filePath, []byte(finalContent), 0644)
-			if err != nil {
+			//nolint:gosec // .desktop launcher files must stay world-readable (0644)
+			if err = os.WriteFile(filePath, []byte(finalContent), 0o644); err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to write to the file: %s\n", filePath)
 				os.Exit(1)
 			}
@@ -140,11 +149,11 @@ func PatchFiles(filesToPatch []string, shellPath string, dryRunFlag, repatchFlag
 		fmt.Printf("\x1b[32mv\x1b[0m Patched file: %s\n", filePath)
 
 		if dryRunFlag {
-			println(finalContent)
+			fmt.Println(finalContent)
 		}
 	}
 
 	if dryRunFlag {
-		println("\nno action taken -- dry run mode on")
+		fmt.Println("\nno action taken -- dry run mode on")
 	}
 }

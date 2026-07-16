@@ -19,8 +19,16 @@ const (
 	RubyMine
 	AppCode
 	Studio
+	RustRover
+	Aqua
+	DataSpell
+	MPS
+	Writerside
+	Gateway
 )
 
+// IdeNames maps each JetBrainsIDE to the substring that appears in its
+// jetbrains-<name>-<hash>.desktop filename. Order must match the const block.
 var IdeNames = []string{
 	"idea",
 	"pycharm",
@@ -32,11 +40,18 @@ var IdeNames = []string{
 	"rubymine",
 	"appcode",
 	"studio", // JetBrains android studio
+	"rustrover",
+	"aqua",
+	"dataspell",
+	"mps",
+	"writerside",
+	"gateway",
 }
 
 func AllIDEs() []JetBrainsIDE {
 	return []JetBrainsIDE{
 		IntelliJ, PyCharm, WebStorm, PhpStorm, CLion, Rider, DataGrip, RubyMine, AppCode, Studio,
+		RustRover, Aqua, DataSpell, MPS, Writerside, Gateway,
 	}
 }
 
