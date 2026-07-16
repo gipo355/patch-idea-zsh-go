@@ -5,17 +5,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ogier/pflag"
-
 	"github.com/gipo355/patch-jetbrains-ide/internal"
+	"github.com/spf13/pflag"
 )
 
 func main() {
-	helpFlag, dryRunFlag, allIdesFlag, allFilesFlag, repatchFlag, currentShellFlag := internal.DefineFlags()
+	flags := internal.DefineFlags()
 
 	pflag.Parse()
 
-	if *helpFlag {
+	if *flags.Help {
 		pflag.Usage()
 		os.Exit(0)
 	}
@@ -26,17 +25,28 @@ func main() {
 		os.Exit(1)
 	}
 
-	dirPath := filepath.Join(homeDir, ".local", "share", "applications")
+	if !*flags.WrappersOnly {
+		dirPath := filepath.Join(homeDir, ".local", "share", "applications")
 
-	shell := internal.DetermineShell(*currentShellFlag)
+		shell := internal.DetermineShell(*flags.CurrentShell)
 
-	shellPath := internal.GetShellPath(shell)
+		shellPath := internal.GetShellPath(shell)
 
-	selectedIDEs := internal.GetSelectedIDEs(*allIdesFlag)
+		selectedIDEs := internal.GetSelectedIDEs(*flags.AllIDEs)
 
-	matchingFiles := internal.FindMatchingFiles(dirPath, selectedIDEs)
+		matchingFiles := internal.FindMatchingFiles(dirPath, selectedIDEs)
 
-	filesToPatch := internal.GetFilesToPatch(matchingFiles, *allFilesFlag)
+		filesToPatch := internal.GetFilesToPatch(matchingFiles, *flags.AllFiles)
 
-	internal.PatchFiles(filesToPatch, shellPath, *dryRunFlag, *repatchFlag)
+		internal.PatchFiles(filesToPatch, shellPath, *flags.DryRun, *flags.Repatch)
+	}
+
+	if *flags.Wrappers || *flags.WrappersOnly {
+		scriptsDir := filepath.Join(homeDir, ".local", "share", "JetBrains", "Toolbox", "scripts")
+		targetDir := *flags.WrapperDir
+		if targetDir == "" {
+			targetDir = filepath.Join(homeDir, ".local", "bin")
+		}
+		internal.GenerateWrappers(scriptsDir, targetDir, *flags.DryRun, *flags.Repatch)
+	}
 }
