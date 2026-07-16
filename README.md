@@ -1,10 +1,19 @@
 # patch-jetbrains-ide
 
-> ⚠ Requires [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/).
+> ⚠ **Linux only.** Requires [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/).
 
 Small CLI that patches the JetBrains **`.desktop` launcher files** so the IDE is
 started through your shell and inherits your shell environment (PATH, and the
 shims injected by version managers like `mise`, `asdf`, `nvm`, `pyenv`, SDKMAN, …).
+
+## Installation
+
+```bash
+go install github.com/gipo355/patch-jetbrains-ide@latest
+```
+
+Requires Go 1.23+. Linux only — the tool works on XDG `.desktop` files
+(`~/.local/share/applications`), which don't exist on macOS or Windows.
 
 ## Why this is needed
 
@@ -153,12 +162,6 @@ regenerating its scripts, and a re-run only overwrites files it generated (pass
 `idea`, `pycharm`, `webstorm`, `phpstorm`, `clion`, `rider`, `datagrip`,
 `rubymine`, `appcode`, `studio` (Android Studio), `rustrover`, `aqua`,
 `dataspell`, `mps`, `writerside`, `gateway`.
-
-## Installation
-
-```bash
-go install github.com/gipo355/patch-jetbrains-ide@latest
-```
 
 ## Development
 
